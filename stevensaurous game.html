@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Steven Runner with Speed and Variation</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #f4f4f4;
+      font-family: sans-serif;
+    }
+
+    canvas {
+      display: block;
+      background: #fff;
+      margin: 0 auto;
+      border: 2px solid #333;
+    }
+
+    #scoreboard {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="200"></canvas>
+  <div id="scoreboard">
+    Score: <span id="score">0</span> |
+    High Score: <span id="highscore">0</span>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const steven = new Image();
+    steven.src = "steven.jpg"; // Put your steven.jpg here
+
+    let stevenX = 50;
+    let stevenY = 150;
+    let velocityY = 0;
+    const gravity = 1.2;
+    let isJumping = false;
+
+    // Starting speed and max speed (pixels per frame)
+    const initialSpeed = 6;
+    const maxSpeed = initialSpeed * 2;
+    let gameSpeed = initialSpeed;
+
+    // Cactus properties - will vary
+    let cactusX = canvas.width;
+    let cactusWidth = 20;
+    let cactusHeight = 40;
+    let cactusY = 160;
+
+    let score = 0;
+    let highscore = localStorage.getItem("highscore") || 0;
+
+    const scoreDisplay = document.getElementById("score");
+    const highScoreDisplay = document.getElementById("highscore");
+    highScoreDisplay.textContent = highscore;
+
+    function jump() {
+      if (!isJumping) {
+        velocityY = -18;
+        isJumping = true;
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        jump();
+      }
+    });
+
+    document.addEventListener("click", () => {
+      jump();
+    });
+
+    // Randomize cactus size and position (within reasonable bounds)
+    function randomizeCactus() {
+      cactusWidth = 15 + Math.random() * 20;  // width between 15 and 35
+      cactusHeight = 30 + Math.random() * 30; // height between 30 and 60
+      cactusY = 190 - cactusHeight; // position so it sits on ground line
+    }
+
+    function resetGame() {
+      cactusX = canvas.width;
+      score = 0;
+      gameSpeed = initialSpeed;
+      velocityY = 0;
+      stevenY = 150;
+      isJumping = false;
+      randomizeCactus();
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw ground
+      ctx.fillStyle = "#888";
+      ctx.fillRect(0, 190, canvas.width, 2);
+
+      // Steven (player) physics & draw
+      velocityY += gravity;
+      stevenY += velocityY;
+      if (stevenY >= 150) {
+        stevenY = 150;
+        isJumping = false;
+      }
+      ctx.drawImage(steven, stevenX, stevenY, 40, 40);
+
+      // Move cactus with current speed
+      cactusX -= gameSpeed;
+      if (cactusX < -cactusWidth) {
+        cactusX = canvas.width + Math.random() * 300;
+
+        score++;
+        scoreDisplay.textContent = score;
+
+        // Increase speed gradually with score, capped at maxSpeed
+        gameSpeed = Math.min(maxSpeed, initialSpeed + score * 0.1);
+
+        if (score > highscore) {
+          highscore = score;
+          localStorage.setItem("highscore", highscore);
+          highScoreDisplay.textContent = highscore;
+        }
+
+        // Randomize cactus for next run
+        randomizeCactus();
+      }
+
+      // Draw cactus
+      ctx.fillStyle = "#228B22";
+      ctx.fillRect(cactusX, cactusY, cactusWidth, cactusHeight);
+
+      // Collision detection (simple box-based)
+      if (
+        cactusX < stevenX + 40 &&
+        cactusX + cactusWidth > stevenX &&
+        cactusY < stevenY + 40 &&
+        cactusY + cactusHeight > stevenY
+      ) {
+        alert("Game Over! Your score was: " + score);
+        resetGame();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    steven.onload = () => {
+      randomizeCactus();
+      gameLoop();
+    };
+  </script>
+</body>
+</html>
+
